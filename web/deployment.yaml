@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: kds-service
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+
+  # Give each kds-service some time before considering it healthy.
+  # This is to prevent a service that crashes on startup from getting rolled
+  # out to all replicas. Set maxUnavailable to 0 and maxSurge to 1 to enable
+  # a quasi-canary style deployment.
+  minReadySeconds: 10
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        name: kds-service
+    spec:
+      containers:
+      - name: kds-service
+        image: marccarre/kds-service:v1.0.0
+        args:
+        - --db-uri=postgres://postgres@kds-postgresql:5432/users?sslmode=disable
+        - --db-passwd-file=/home/service/.credentials/postgres-password
+        - --db-migrations-dir=/home/service/migrations
+        - --http-port=8080
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 60
+        volumeMounts:
+        - name: kds-postgresql
+          mountPath: /home/service/.credentials
+          readOnly: true
+      volumes:
+      - name: kds-postgresql
+        secret:
+          secretName: kds-postgresql
