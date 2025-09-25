@@ -1,0 +1,21 @@
+name: 'transformations'
+version: '1.0.0'
+
+profile: 'transformations'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  transformations:
+    mock:
+      +materialized: table
+      +pre-hook: "CREATE SCHEMA IF NOT EXISTS {{ env_var('DBT_SCHEMA') }}"
